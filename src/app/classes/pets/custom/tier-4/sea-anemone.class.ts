@@ -1,4 +1,4 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Player } from "../../../player.class";
 import { Pet, Pack } from "../../../pet.class";
@@ -12,7 +12,7 @@ export class SeaAnemone extends Pet {
     health = 4;
     attack = 3;
     initAbilities(): void {
-        this.addAbility(new SeaAnemoneAbility(this, this.logService, this.abilityService));
+        this.addAbility(new SeaAnemoneAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

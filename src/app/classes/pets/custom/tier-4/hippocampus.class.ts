@@ -1,5 +1,5 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -12,9 +12,8 @@ export class Hippocampus extends Pet {
     pack: Pack = 'Custom';
     attack = 2;
     health = 4;
-    //TO DO: Needs update abilty
     initAbilities(): void {
-        this.addAbility(new HippocampusAbility(this, this.logService, this.abilityService));
+        this.addAbility(new HippocampusAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

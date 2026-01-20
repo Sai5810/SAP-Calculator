@@ -3,7 +3,8 @@ import { LogService } from "../services/log.service";
 import { Equipment } from "./equipment.class";
 import { Player } from "./player.class";
 import { Peanut } from "./equipment/turtle/peanut.class";
-import { AbilityService } from "../services/ability.service";
+import { Corncob } from "./equipment/custom/corncob.class";
+import { AbilityService } from "../services/ability/ability.service";
 import { Tiger } from "./pets/turtle/tier-6/tiger.class";
 import { Albatross } from "./pets/custom/tier-6/albatross.class";
 import { Salt } from "./equipment/puppy/salt.class";
@@ -19,7 +20,7 @@ import { Crisp } from "./equipment/ailments/crisp.class";
 import { Toasty } from "./equipment/ailments/toasty.class";
 import { AbilityEvent } from "../interfaces/ability-event.interface";
 import { Nurikabe } from "./pets/custom/tier-5/nurikabe.class";
-import { cloneDeep } from "lodash";
+import { cloneDeep } from "lodash-es";
 import { PeanutButter } from "./equipment/hidden/peanut-butter";
 import { Blackberry } from "./equipment/puppy/blackberry.class";
 import { HoneydewMelon, HoneydewMelonAttack } from "./equipment/golden/honeydew-melon.class";
@@ -30,12 +31,26 @@ import { Ambrosia } from "./equipment/unicorn/ambrosia.class";
 import { Toad } from "./pets/star/tier-3/toad.class";
 import { WhiteTruffle } from "./equipment/danger/white-truffle.class";
 import { Ability, AbilityTrigger, AbilityType } from "./ability.class";
+import { Guava, GuavaAttack } from "./equipment/custom/guava.class";
+import { minExpForLevel } from "../util/leveling";
+import { EquipmentDamageHandler } from "./equipment/equipment-damage.handler";
+import {
+    attackPet as attackPetImpl,
+    calculateDamage as calculateDamageImpl,
+    dealDamage as dealDamageImpl,
+    jumpAttack as jumpAttackImpl,
+    snipePet as snipePetImpl
+} from "./pet/pet-combat";
+import { resetPetState } from "./pet/pet-state";
+import { Log } from "../interfaces/log.interface";
+import { Strawberry } from "./equipment/star/strawberry.class";
 
 export type Pack = 'Turtle' | 'Puppy' | 'Star' | 'Golden' | 'Unicorn' | 'Custom' | 'Danger';
 
 
 export abstract class Pet {
     name: string;
+    baseName: string;
     tier: number;
     pack: Pack;
     hidden: boolean = false;
@@ -46,12 +61,25 @@ export abstract class Pet {
     equipment?: Equipment;
     mana: number = 0;
     triggersConsumed: number = 0;
+    sellValue: number = 1;
+    baseSellValue: number = 1;
     //memories
     swallowedPets?: Pet[] = [];
     abominationSwallowedPet1?: string;
     abominationSwallowedPet2?: string;
     abominationSwallowedPet3?: string;
-    belugaSwallowedPet: string;
+    abominationSwallowedPet1BelugaSwallowedPet?: string;
+    abominationSwallowedPet2BelugaSwallowedPet?: string;
+    abominationSwallowedPet3BelugaSwallowedPet?: string;
+    abominationSwallowedPet1Level?: number;
+    abominationSwallowedPet2Level?: number;
+    abominationSwallowedPet3Level?: number;
+    abominationSwallowedPet1TimesHurt: number = 0;
+    abominationSwallowedPet2TimesHurt: number = 0;
+    abominationSwallowedPet3TimesHurt: number = 0;
+    belugaSwallowedPet: string | null = null;
+    sarcasticFringeheadSwallowedPet?: string;
+    friendsDiedBeforeBattle: number = 0;
     timesHurt: number = 0;
     timesAttacked: number = 0;
     battlesFought: number = 0;
@@ -85,6 +113,7 @@ export abstract class Pet {
     // if we already set eggplant ability make sure not to set it again
     eggplantTouched = false;
     cherryTouched = false;
+    clearFrontTriggered = false;
     //ability memory
     maxAbilityUses: number = null;
 
@@ -102,7 +131,8 @@ export abstract class Pet {
         this.parent = parent;
     }
 
-    initPet(exp: number, health: number, attack: number, mana: number, equipment: Equipment, triggersConsumed?: number) {
+    initPet(exp?: number, health?: number, attack?: number, mana?: number, equipment?: Equipment, triggersConsumed?: number) {
+        this.baseName = this.baseName ?? this.name;
         this.exp = exp ?? this.exp;
         this.health = health ?? this.health * this.level;
         this.attack = attack ?? this.attack * this.level;
@@ -115,6 +145,8 @@ export abstract class Pet {
         this.equipment = equipment;
         this.originalEquipment = equipment;
         this.originalExp = this.exp;
+        this.baseSellValue = this.level;
+        this.sellValue = this.baseSellValue;
 
         this.initAbilities();
 
@@ -158,346 +190,36 @@ export abstract class Pet {
     }
 
 
-    attackPet(pet: Pet,  jumpAttack: boolean = false, power?: number, random: boolean = false) {
-        this.timesAttacked++;
-        let damageResp = this.calculateDamgae(pet, this.getManticoreMult(), power);
-        let attackEquipment = damageResp.attackEquipment;
-        let defenseEquipment = damageResp.defenseEquipment;
-        let damage = damageResp.damage;
-
-        let attackMultiplier = this.equipment?.multiplier;
-        let defenseMultiplier = pet.equipment?.multiplier;
-        this.currentTarget = pet;
-        let message: string;
-        if (jumpAttack) {
-            message = `${this.name} jump-attacks ${pet.name} for ${damage}.`;
-            if (this.equipment instanceof WhiteTruffle) {
-                message += `(White Truffle)`
-            }
-        } else{
-            message = `${this.name} attacks ${pet.name} for ${damage}.`;
-        }
-        // peanut death
-        if (attackEquipment instanceof Peanut && damage > 0) {
-            this.logService.createLog({
-                message: `${message} (Peanut)`,
-                type: 'attack',
-                player: this.parent,
-                randomEvent: random
-            })
-            this.dealDamage(pet,damage);
-            pet.killedBy = this;
-            pet.health = 0;
-        } else if (attackEquipment instanceof PeanutButter && damage > 0 && attackEquipment.uses > 0) {
-            this.logService.createLog({
-                message: `${message} (Peanut Butter)`,
-                type: 'attack',
-                player: this.parent,
-                randomEvent: random
-            })
-
-            pet.killedBy = this;
-            this.dealDamage(pet,damage);
-            pet.health = 0;
-        } else {
-            this.dealDamage(pet, damage);
-            if (attackEquipment != null) {
-                let power: any = Math.abs(attackEquipment.power);
-                let sign = '-';
-                if (attackEquipment.power > 0) {
-                    sign = '+';
-                }
-                let powerAmt = `${sign}${power}`;
-                if (attackEquipment instanceof Salt) {
-                        powerAmt = `x2`;
-                }
-                if (attackEquipment instanceof MapleSyrupAttack) {
-                        powerAmt = `x0.5`;
-                }
-                if (attackEquipment instanceof Cheese) {
-                    if (damage <= 15) {
-                        powerAmt = '=15';
-                    } else {
-                        powerAmt = '+0';
-                    }
-                }
-                if (attackEquipment instanceof FortuneCookie) {
-                    random = true;
-                    if (damageResp.fortuneCookie) {
-                        powerAmt = `x2`;
-                        if (attackEquipment.multiplier > 1) {
-                            powerAmt += attackEquipment.multiplierMessage;
-                        }
-                    } else {
-                        powerAmt = `x1`;
-                    }
-                }
-                
-                message += ` (${attackEquipment.name} ${powerAmt})`;
-
-                if (attackMultiplier > 1) {
-                    message += this.equipment.multiplierMessage;
-                }
-            }
-            if (defenseEquipment != null) {
-                let power: any = Math.abs(defenseEquipment.power);
-                let sign = '-';
-                if (defenseEquipment.power < 0) {
-                    sign = '+';
-                }
-                if (defenseEquipment.name === 'Strawberry') {
-                    let sparrowLevel = pet.getSparrowLevel();
-                    if (sparrowLevel > 0) {
-                        power = sparrowLevel * 5;
-                        message += ` (Strawberry -${power} (Sparrow))`;
-                    }
-                } else if (defenseEquipment instanceof Pepper) {
-                    if (pet.health == 1) {
-                        sign = '!';
-                    } else {
-                        sign = '-';
-                    }
-                    power = '';
-                    message += ` (${defenseEquipment.name} ${sign}${power})`;
-                } else if (defenseEquipment instanceof MapleSyrup) {
-                    power = 'x0.5'
-                    message += ` (${defenseEquipment.name} ${power})`;
-                } else {
-                    message += ` (${defenseEquipment.name} ${sign}${power})`;
-                }
-
-                if (defenseMultiplier > 1) {
-                    message += pet.equipment.multiplierMessage;
-                }
-                //pet.useDefenseEquipment();
-            }
-            
-            if (pet.equipment instanceof Icky) {
-                message += 'x2 (Icky)';
-                if (pet.equipment.multiplier > 1) {
-                    message += pet.equipment.multiplierMessage;
-                }
-            }
-
-            if (damageResp.nurikabe > 0) {
-                message += ` -${damageResp.nurikabe} (Nurikabe)`;
-            }
-            if (damageResp.fairyBallReduction > 0) {
-                message += ` -${damageResp.fairyBallReduction} (Fairy Ball)`;
-            }
-            if (damageResp.fanMusselReduction > 0) {
-                message += ` -${damageResp.fanMusselReduction} (Fan Mussel)`;
-            }
-            if (damageResp.ghostKittenReduction > 0) {
-                message += ` -${damageResp.ghostKittenReduction} (Ghost Kitten)`;
-            }
-            if (damageResp.mapleSyrupReduction > 0) {
-                message += ` -${damageResp.mapleSyrupReduction} (Maple Syrup)`;
-            }
-            // if (attackEquipment != null) {
-            //     let power = Math.abs(attackEquipment.power);
-            //     let sign = '-';
-            //     if (attackEquipment.power < 0) {
-            //         sign = '+';
-            //     }
-            //     if (attackMultiplier > 1) {
-            //         message += ` x${attackMultiplier} (Panther)`;
-            //     }
-            //     message += ` (${attackEquipment.name} ${sign}${power})`;
-            // }
-
-            
-            let manticoreMult = this.getManticoreMult();
-            let manticoreAilments = [
-                'Weak',
-                'Cold',
-                'Icky',
-                'Spooked'
-            ]
-            let hasAilment = manticoreAilments.includes(pet.equipment?.name);
-
-            if (manticoreMult.length > 0 && hasAilment) {
-                for (let mult of manticoreMult) {
-                    message += ` x${mult + 1} (Manticore)`;
-                }
-            }
-
-            this.logService.createLog({
-                message: message,
-                type: "attack",
-                player: this.parent,
-                randomEvent: random
-            });
-            let skewerEquipment: Equipment = this.equipment?.equipmentClass == 'skewer' ? this.equipment : null;
-            if (skewerEquipment != null) {
-                skewerEquipment.attackCallback(this, pet);
-            }
-        }
-
-        // unified friend attack events (includes friendAttacks, friendAheadAttacks, and enemyAttacks)
-        this.abilityService.triggerAttacksEvents(this);
-        this.applyCrisp();
-
+    attackPet(pet: Pet, jumpAttack: boolean = false, power?: number, random: boolean = false) {
+        attackPetImpl(this, pet, jumpAttack, power, random);
     }
 
     applyCrisp() {
-        let manticoreMult = this.parent.opponent.getManticoreMult();
+        const manticoreMult = this.parent.opponent.getManticoreMult();
         for (let pet of this.parent.petArray) {
             if (pet.equipment instanceof Crisp) {
-                let damage = 6;
-                let totalMultiplier = pet.equipment.multiplier ;
-                for (let mult of manticoreMult) {
-                    totalMultiplier += mult;
-                }
-                damage *= totalMultiplier;
-                let fairyBallReduction = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'FairyAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'FairyAbility') {
-                            fairyBallReduction += ability.level * 2;
-                            damage = Math.max(0, damage - ability.level * 2);
-                        }
-                    }
-                }
-                let nurikabe = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'NurikabeAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'NurikabeAbility') {
-                            nurikabe += ability.level * 4;
-                            damage = Math.max(0, damage - ability.level * 4);
-                            ability.currentUses++;
-                        }
-                    }
-                }
-                let fanMusselReduction = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'FanMusselAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'FanMusselAbility') {
-                            fanMusselReduction += ability.level * 1;
-                            damage = Math.max(0, damage - fanMusselReduction);
-                            ability.currentUses++;
-                        }
-                    }
-                }
-                let ghostKittenReduction = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'GhostKittenAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'GhostKittenAbility') {
-                            ghostKittenReduction += ability.level * 3;
-                            damage = Math.max(0, damage - ghostKittenReduction);
-                        }
-                    }
-                }
-                let message = `${pet.name} took ${damage} damage`;
-                if (manticoreMult.length > 0) {
-                    for (let mult of manticoreMult) {
-                        message += ` x${mult + 1} (Manticore)`;
-                    }
-                }
-                if (pet.equipment.multiplier > 1) {
-                    message += pet.equipment.multiplierMessage;
-                }
-                if (fairyBallReduction > 0) {
-                    message += `-${fairyBallReduction} (FairyBall)`
-                }
-                if (nurikabe > 0) {
-                    message += ` -${nurikabe} (Nurikabe)`;
-                }
-                if (fanMusselReduction > 0) {
-                    message += ` -${fanMusselReduction} (Fan Mussel)`;
-                }
-                if (ghostKittenReduction > 0) {
-                    message += ` -${ghostKittenReduction} (Ghost Kitten)`;
-                }
-                message += ` (Crisp).`;
-
-                this.logService.createLog({
-                    message: message,
-                    type: 'ability',
-                    player: pet.parent
+                EquipmentDamageHandler.applyDamage({
+                    pet,
+                    baseDamage: 6,
+                    perkName: 'Crisp',
+                    manticoreMultipliers: manticoreMult,
+                    logService: this.logService,
+                    afterDamage: (target) => target.removePerk()
                 });
-                this.dealDamage(pet, damage);
-                pet.removePerk();
-            }
-            else if (pet.equipment instanceof Toasty && pet.equipment.uses > 0) {
-                let damage = 1;
-                let totalMultiplier = pet.equipment.multiplier;
-                for (let mult of manticoreMult) {
-                    totalMultiplier += mult;
-                }
-                damage *= totalMultiplier;
-                let fairyBallReduction = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'FairyAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'FairyAbility') {
-                            fairyBallReduction += ability.level * 2;
-                            damage = Math.max(0, damage - ability.level * 2);
+            } else if (pet.equipment instanceof Toasty && pet.equipment.uses > 0) {
+                EquipmentDamageHandler.applyDamage({
+                    pet,
+                    baseDamage: 1,
+                    perkName: 'Toasty',
+                    manticoreMultipliers: manticoreMult,
+                    logService: this.logService,
+                    afterDamage: (target) => {
+                        target.equipment.uses--;
+                        if (target.equipment.uses <= 0) {
+                            target.removePerk();
                         }
                     }
-                }
-                let nurikabe = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'NurikabeAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'NurikabeAbility') {
-                            nurikabe += ability.level * 4;
-                            damage = Math.max(0, damage - ability.level * 4);
-                            ability.currentUses++;
-                        }
-                    }
-                }
-                let fanMusselReduction = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'FanMusselAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'FanMusselAbility') {
-                            fanMusselReduction += ability.level * 1;
-                            damage = Math.max(0, damage - fanMusselReduction);
-                            ability.currentUses++;
-                        }
-                    }
-                }
-                let ghostKittenReduction = 0;
-                if (pet.hasTrigger(undefined, 'Pet', 'GhostKittenAbility') && damage > 0) {
-                    for (let ability of pet.abilityList) {
-                        if (ability.name == 'GhostKittenAbility') {
-                            ghostKittenReduction += ability.level * 3;
-                            damage = Math.max(0, damage - ghostKittenReduction);
-                        }
-                    }
-                }
-                let message = `${pet.name} took ${damage} damage`;
-                if (manticoreMult.length > 0) {
-                    for (let mult of manticoreMult) {
-                        message += ` x${mult + 1} (Manticore)`;
-                    }
-                }
-                if (pet.equipment.multiplier > 1) {
-                    message += pet.equipment.multiplierMessage;
-                }
-                if (fairyBallReduction > 0) {
-                    message += `-${fairyBallReduction} (FairyBall)`
-                }
-                if (nurikabe > 0) {
-                    message += ` -${nurikabe} (Nurikabe)`;
-                }
-                if (fanMusselReduction > 0) {
-                    message += ` -${fanMusselReduction} (Fan Mussel)`;
-                }
-                if (ghostKittenReduction > 0) {
-                    message += ` -${ghostKittenReduction} (Ghost Kitten)`;
-                }
-                message += ` (Toasty).`;
-
-                this.logService.createLog({
-                    message: message,
-                    type: 'ability',
-                    player: pet.parent
                 });
-                this.dealDamage(pet, damage);
-                pet.equipment.uses--;
-                if (pet.equipment.uses <= 0) {
-                    pet.removePerk();
-                }
-
             }
         }
     }
@@ -514,360 +236,25 @@ export abstract class Pet {
      * @returns damage amount
      */
     snipePet(pet: Pet, power: number, randomEvent?: boolean, tiger?: boolean, pteranodon?: boolean, equipment?: boolean, mana?: boolean) {
-
-        let albatross = false;
-        if (this.petAhead?.name == 'Albatross' && pet.tier <= 4) {
-            power += this.petAhead.level * 3;
-            albatross = true;
-        }
-        if (this.petBehind()?.name == 'Albatross' && pet.tier <= 4) {
-            power += this.petBehind().level * 3;
-            albatross = true;
-        }
-
-        let damageResp = this.calculateDamgae(pet, this.getManticoreMult(), power, true);
-        let attackEquipment = damageResp.attackEquipment;
-        let defenseEquipment = damageResp.defenseEquipment;
-        let damage = damageResp.damage;
-
-        this.dealDamage(pet, damage);
-
-        let message = `${this.name} sniped ${pet.name} for ${damage}.`;
-        if (defenseEquipment != null) {
-            pet.useDefenseEquipment(true)
-            let power = Math.abs(defenseEquipment.power);
-            let sign = '-';
-            if (defenseEquipment.power < 0) {
-                sign = '+';
-            }
-            if (defenseEquipment.name === 'Strawberry') {
-                let sparrowLevel = pet.getSparrowLevel();
-                if (sparrowLevel > 0) {
-                    power = sparrowLevel * 5;
-                    message += ` (Strawberry -${power} (Sparrow))`;
-                }
-            } else {
-                message += ` (${defenseEquipment.name} ${sign}${power})`;
-            }
-            message += defenseEquipment.multiplierMessage;
-        }
-        if (attackEquipment != null && attackEquipment.equipmentClass == 'attack-snipe') {
-            let power = Math.abs(attackEquipment.power);
-            let sign = '-';
-            if (attackEquipment.power > 0) {
-                sign = '+';
-            }
-            message += ` (${attackEquipment.name} ${sign}${power})`;
-        }
-
-        // Add equipment multiplier message support (like Pandora's Box)
-        if (this.equipment?.multiplier > 1) {
-            message += this.equipment.multiplierMessage;
-        }
-
-        if (tiger) {
-            message += ' (Tiger)'
-        }
-
-        if (albatross) {
-            message += ' (Albatross)'
-        }
-
-        if (equipment && this.equipment) {
-            message += ` (${this.equipment.name})`
-        }
-
-        if (mana) {
-            message += ' (Mana)'
-        }
-
-        if (pet.equipment?.name == 'Icky') {
-            message += 'x2 (Icky)';
-            if (pet.equipment.multiplier > 1) {
-                message += pet.equipment.multiplierMessage;
-            }
-        }
-
-        let manticoreMult = this.getManticoreMult();
-        let manticoreAilments = [
-            'Weak',
-            'Cold',
-            'Icky',
-            'Spooked'
-        ]
-        let hasAilment = manticoreAilments.includes(pet.equipment?.name);
-        if (manticoreMult.length > 0 && hasAilment) {
-            for (let mult of manticoreMult) {
-                message += ` x${mult + 1} (Manticore)`;
-            }
-        }
-
-        if (damageResp.nurikabe > 0) {
-            message += ` -${damageResp.nurikabe} (Nurikabe)`
-        }
-        if (damageResp.fairyBallReduction > 0) {
-            message += ` -${damageResp.fairyBallReduction} (Fairy Ball)`
-        }
-        if (damageResp.fanMusselReduction > 0) {
-            message += ` -${damageResp.fanMusselReduction} (Fan Mussel)`
-        }
-        if (damageResp.ghostKittenReduction > 0) {
-            message += ` -${damageResp.ghostKittenReduction} (Ghost Kitten)`
-        }
-
-        this.logService.createLog({
-            message: message,
-            type: "attack",
-            randomEvent: randomEvent,
-            player: this.parent,
-            pteranodon: pteranodon
-        });
-        
-        return damage;
+        return snipePetImpl(this, pet, power, randomEvent, tiger, pteranodon, equipment, mana);
     }
 
-    calculateDamgae(pet: Pet, manticoreMult: number[], power?: number, snipe=false):
-        {
-            defenseEquipment: Equipment,
-            attackEquipment: Equipment,
-            damage: number,
-            fortuneCookie: boolean,
-            nurikabe: number,
-            fairyBallReduction?: number,
-            fanMusselReduction?: number,
-            mapleSyrupReduction?: number,
-            ghostKittenReduction?: number,
-        } {
-        let attackMultiplier = this.equipment?.multiplier;
-        let defenseMultiplier = pet.equipment?.multiplier;
-
-        const manticoreDefenseAilments = [
-            'Cold',
-            'Weak',
-            'Spooked'
-        ];
-
-        const manticoreAttackAilments = [
-            'Ink'
-        ];
-
-        const manticoreOtherAilments = [
-            'Icky'
-        ]
-
-        let defenseEquipment: Equipment = pet.equipment?.equipmentClass == 'defense' 
-        || pet.equipment?.equipmentClass == 'shield'
-        || pet.equipment?.equipmentClass == 'ailment-defense'
-        || (snipe && pet.equipment?.equipmentClass == 'shield-snipe') ? pet.equipment : null;
-
-        if (defenseEquipment != null) {
-
-            if (manticoreDefenseAilments.includes(defenseEquipment?.name)) {
-                for (let mult of manticoreMult) {
-                    defenseMultiplier += mult;
-                }
-            }
-            defenseEquipment.power = defenseEquipment.originalPower * defenseMultiplier;
-        }
-
-
-        let attackEquipment: Equipment;
-        let attackAmt: number;
-        // TODO snipe ability bug with ink?
-        if (snipe) {
-            attackEquipment = this.equipment?.equipmentClass == 'attack-snipe' ? this.equipment : null;
-            attackAmt = attackEquipment != null ? power + attackEquipment.power : power;
-            if (defenseEquipment instanceof MapleSyrup) {
-                defenseEquipment = null;
-            }
-        } else {
-            if (this.equipment instanceof HoneydewMelon) {
-                // Create attack equipment for the one-time +5 damage
-                attackEquipment = new HoneydewMelonAttack();
-            } else if (this.equipment instanceof MapleSyrup) {
-                // Create attack equipment for the one-time 50% damage reduction
-                attackEquipment = new MapleSyrupAttack();
-            } else {
-                attackEquipment = this.equipment?.equipmentClass == 'attack'
-                || this.equipment?.equipmentClass == 'ailment-attack' ? this.equipment : null;
-            }
-            if (attackEquipment != null) {
-            
-                if (manticoreAttackAilments.includes(attackEquipment?.name)) {
-                    for (let mult of manticoreMult) {
-                        attackMultiplier += mult;
-                    }
-                } 
-                attackEquipment.power = attackEquipment.originalPower * attackMultiplier;
-
-            }
-
-            let petAttack = this.attack;
-            if (this.name == 'Monty') {
-                petAttack *= this.level + 1;
-            }
-            //use input power, or pet Attack
-            const baseAttack = power != null ? power : petAttack;
-            //0 if equipment is stuff liek salt
-            const equipmentBonus = attackEquipment?.power? attackEquipment.power : 0;
-            attackAmt = baseAttack + equipmentBonus;
-        }
-        let defenseAmt = defenseEquipment?.power ? defenseEquipment.power : 0;
-        
-        // Check for Sparrow enhancement of Strawberries
-        let sparrowLevel = pet.getSparrowLevel();
-        if (pet.equipment?.name === 'Strawberry' && sparrowLevel > 0) {
-            defenseAmt += sparrowLevel * 5;
-        }
-
-        let mapleSyrupReduction = 0;
-        if (pet.equipment instanceof MapleSyrup && pet.equipment.uses > 0 && !snipe) {
-            attackAmt = Math.floor(attackAmt * Math.pow(0.5, defenseMultiplier));
-        }
-
-
-        if (attackEquipment instanceof Salt && !snipe) {
-            attackAmt *= (2 + attackMultiplier - 1);
-        }
-
-        if (attackEquipment instanceof MapleSyrupAttack && !snipe) {
-            attackAmt = Math.floor(attackAmt * Math.pow(0.5, attackMultiplier));
-        }
-
-        let fortuneCookie = false;
-        if (attackEquipment instanceof FortuneCookie && !snipe) {
-            // flip a coin
-            if (Math.random() < 0.5) {
-                attackAmt *= (2 + attackMultiplier - 1);
-                fortuneCookie = true;
-            }
-        }
-
-        if (attackEquipment instanceof Cheese && !snipe) {
-            attackAmt = Math.max(15, attackAmt);
-        }
-
-
-        if (pet.equipment instanceof Icky) {
-            let totalMultiplier = 2; // Base icky multiplier
-            for (let mult of manticoreMult) {
-                totalMultiplier += mult; // Add manticore multipliers
-            }
-            totalMultiplier += pet.equipment.multiplier - 1; // Add pandora's box multiplier
-            attackAmt *= totalMultiplier;
-        }
-        let min = defenseEquipment?.equipmentClass == 'shield' || defenseEquipment?.equipmentClass == 'shield-snipe' ? 0 : 1;
-        //check garlic
-        if (defenseEquipment?.minimumDamage !== undefined) {
-            min = defenseEquipment.minimumDamage;
-        }
-
-        let damage: number;
-        if (attackAmt <= min && defenseAmt > 0) {
-                damage = Math.max(attackAmt, 0);
-        } else {
-            damage = Math.max(min, attackAmt - defenseAmt);
-        }
-
-        if (defenseEquipment instanceof Pepper) {
-            damage = Math.min(damage, pet.health - 1);
-        }
-        //TO DO: Might need to move all pet's less damage ability down here, or into Deal Damage
-        //T) DO: Change from name check/trigger check to how many ability check
-        let fairyBallReduction = 0;
-        if (pet.hasTrigger(undefined, 'Pet', 'FairyAbility') && damage > 0) {
-            for (let ability of pet.abilityList) {
-                if (ability.name == 'FairyAbility') {
-                    fairyBallReduction += ability.level * 2;
-                    damage = Math.max(0, damage - ability.level * 2);        
-                }
-            }
-        }
-
-        let nurikabe = 0;
-        if (pet.hasTrigger(undefined, 'Pet', 'NurikabeAbility') && damage > 0) {
-            for (let ability of pet.abilityList) {
-                if (ability.name == 'NurikabeAbility') {
-                    nurikabe = ability.level * 4;
-                    damage = Math.max(0, damage - nurikabe);
-                    ability.currentUses++;
-                }
-            }
-        }
-
-        let fanMusselReduction = 0;
-        if (pet.hasTrigger(undefined, 'Pet', 'FanMusselAbility') && damage > 0) {
-            for (let ability of pet.abilityList) {
-                if (ability.name == 'FanMusselAbility') {
-                    fanMusselReduction += ability.level * 1;
-                    damage = Math.max(0, damage - fanMusselReduction);
-                    ability.currentUses++;
-                }
-            }
-        }
-
-        let ghostKittenReduction = 0;
-        if (snipe && pet.hasTrigger(undefined, 'Pet', 'GhostKittenAbility') && damage > 0) {
-            for (let ability of pet.abilityList) {
-                if (ability.name == 'GhostKittenAbility') {
-                    ghostKittenReduction += ability.level * 3;
-                    damage = Math.max(0, damage - ghostKittenReduction);
-                }
-            }
-        }
-
-
-        return {
-            defenseEquipment: defenseEquipment,
-            attackEquipment: attackEquipment,
-            damage: damage,
-            fortuneCookie: fortuneCookie,
-            nurikabe: nurikabe,
-            fairyBallReduction: fairyBallReduction,
-            fanMusselReduction: fanMusselReduction,
-            mapleSyrupReduction: mapleSyrupReduction,
-            ghostKittenReduction: ghostKittenReduction,
-        }
-    } 
+    calculateDamage(pet: Pet, manticoreMult: number[], power?: number, snipe = false): {
+        defenseEquipment: Equipment,
+        attackEquipment: Equipment,
+        damage: number,
+        fortuneCookie: boolean,
+        nurikabe: number,
+        fairyBallReduction?: number,
+        fanMusselReduction?: number,
+        mapleSyrupReduction?: number,
+        ghostKittenReduction?: number,
+    } {
+        return calculateDamageImpl(this, pet, manticoreMult, power, snipe);
+    }
 
     resetPet() {
-        this.health = this.originalHealth;
-        this.attack = this.originalAttack;
-        this.equipment = this.originalEquipment;
-        this.lastLostEquipment = null;
-        this.mana = this.originalMana;
-        this.triggersConsumed = this.originalTriggersConsumed;
-        this.exp = this.originalExp;
-        //clear memories
-        this.timesHurt = this.originalTimesHurt;
-        this.timesAttacked = 0;
-        this.abilityCounter = 0;
-        this.transformed = false;
-        this.transformedInto = null;
-        this.currentTarget = null;
-        this.lastAttacker = null;
-        this.killedBy = null;
-        this.swallowedPets = [];
-        this.targettedFriends.clear();
-        this.savedPosition = this.originalSavedPosition;
-        this.abilityList = [...this.originalAbilityList];
-        this.initAbilityUses(); 
-        //reset flags
-        this.done = false;
-        this.seenDead = false;
-        this.removed = false;
-        this.jumped = false;
-        try {
-            this.equipment?.reset();
-        } catch (error) {
-            console.warn('equipment reset failed', this.equipment)
-            console.error(error)
-            // window.alert("You found a rare bug! Please report this bug using the Report A Bug feature and say in this message that you found the rare bug. Thank you!")
-        }    
-        if (this.equipment) {
-            this.equipment.multiplier = 1;
-            this.equipment.multiplierMessage = '';
-        } 
+        resetPetState(this);
     }
     jumpAttackPrep(target: Pet) {
         // Trigger and execute before attack abilities on jumping pet and target
@@ -877,46 +264,15 @@ export abstract class Pet {
     }
     // Jump attack method for abilities that attack and then advance turn
     jumpAttack(target: Pet, tiger?: boolean, damage?: number, randomEvent: boolean = false) {
-        
-        // Set current target for tracking
-        target.lastAttacker = this;
-        
-        let attackPet: Pet;
-        if (this.transformed) {
-            attackPet = this.transformedInto
-        } else {
-            attackPet = this;
-        }
-
-        if (target.transformed) {
-            target = target.transformedInto
-        }
-        // 3. Check if jumping pet is still alive
-        if (!attackPet.alive || !target.alive) {
-            return;
-        }
-        
-        // 4. Perform the attack 
-        attackPet.attackPet(target, true, damage, randomEvent);
-        target.attackPet(attackPet);
-
-        attackPet.useAttackDefenseEquipment();
-        target.useAttackDefenseEquipment();
-    
-        attackPet.parent.checkPetsAlive();
-        target.parent.checkPetsAlive();
-    
-        attackPet.abilityService.executeAfterAttackEvents();        
-        // 6. Trigger and execute friend/enemy jumped abilities 
-        attackPet.abilityService.triggerJumpEvents(attackPet);
+        jumpAttackImpl(this, target, tiger, damage, randomEvent);
     }
 
     get alive(): boolean {
         return this.health > 0;
     }
-    
 
-    setFaintEventIfPresent() {      
+
+    setFaintEventIfPresent() {
         this.abilityService.triggerFaintEvents(this);
         // Add manaSnipe handling with all original logic
         if (this.mana > 0) {
@@ -947,18 +303,8 @@ export abstract class Pet {
         }
     }
 
-    useDefenseEquipment(snipe=false) {
-        if (this.equipment == null) {
-            return;
-        }
-
-        if (this.equipment.equipmentClass == 'ailment-defense' || this.equipment.name == 'Icky') {
-            // skip the next if
-        }
-        else if (this.equipment.equipmentClass != 'defense' && this.equipment.equipmentClass != 'shield' && (snipe && this.equipment.equipmentClass != 'shield-snipe')) {
-            return;
-        }
-        if (this.equipment.uses == null) {
+    useDefenseEquipment(snipe = false) {
+        if (!this.canConsumeDefenseEquipment(snipe)) {
             return;
         }
         this.equipment.uses -= 1;
@@ -968,13 +314,49 @@ export abstract class Pet {
     }
 
     useAttackDefenseEquipment() {
-        if (this.equipment == null) {
+        if (!this.canConsumeAttackDefenseEquipment()) {
             return;
+        }
+        this.equipment.uses -= 1;
+        if (this.equipment.uses == 0) {
+            this.removePerk();
+        }
+    }
+
+    private canConsumeDefenseEquipment(snipe: boolean): boolean {
+        if (!this.equipment) {
+            return false;
+        }
+        if (this.equipment.equipmentClass == 'ailment-defense' || this.equipment.name == 'Icky') {
+            // allowed
+        } else if (this.equipment.equipmentClass != 'defense'
+            && this.equipment.equipmentClass != 'shield'
+            && (snipe && this.equipment.equipmentClass != 'shield-snipe')) {
+            return false;
         }
         if (this.equipment.uses == null) {
-            return;
+            return false;
         }
-        
+        if (this.equipment.name === 'Strawberry') {
+            if (this.getSparrowLevel() <= 0 || this.equipment.uses <= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private canConsumeAttackDefenseEquipment(): boolean {
+        if (!this.equipment) {
+            return false;
+        }
+        if (this.equipment.uses == null) {
+            return false;
+        }
+        if (this.equipment.name === 'Strawberry') {
+            if (this.getSparrowLevel() <= 0 || this.equipment.uses <= 0) {
+                return false;
+            }
+        }
         if (this.equipment.equipmentClass != 'attack'
             && this.equipment.equipmentClass != 'defense'
             && this.equipment.equipmentClass != 'shield'
@@ -983,21 +365,21 @@ export abstract class Pet {
             && this.equipment.equipmentClass != 'ailment-defense'
             && this.equipment.name != 'Icky'
         ) {
-            return;
+            return false;
         }
         if (isNaN(this.equipment.uses)) {
             console.warn('uses is NaN', this.equipment)
         }
-        this.equipment.uses -= 1;
-        if (this.equipment.uses == 0) {
-            this.removePerk();
-        }
+        return true;
     }
 
     increaseAttack(amt) {
         let max = 50;
         if (this.name == 'Behemoth') {
             max = 100;
+        }
+        if (amt > 0 && this.equipment?.name === 'Sad') {
+            return;
         }
         if (!this.alive) {
             return;
@@ -1010,6 +392,9 @@ export abstract class Pet {
         if (this.name == 'Behemoth' || this.name == 'Giant Tortoise') {
             max = 100;
         }
+        if (amt > 0 && this.equipment?.name === 'Sad') {
+            return;
+        }
         if (!this.alive) {
             return;
         }
@@ -1018,39 +403,48 @@ export abstract class Pet {
         this.abilityService.triggerFriendGainsHealthEvents(this);
     }
 
-    dealDamage(pet: Pet, damage: number) {
-        if (!pet.alive) {
+    increaseSellValue(amt: number) {
+        if (amt <= 0) {
             return;
         }
-        if (damage >= pet.health && pet.equipment?.name == 'Bok Choy') {
-            let healthGain = 3 * pet.equipment.multiplier;
-            this.logService.createLog({
-                message: `${pet.name} gained ${healthGain} health (Bok Choy) ${pet.equipment.multiplierMessage} `,
-                type: 'equipment',
-                player: pet.parent
-              })
-            pet.increaseHealth(healthGain)
-            pet.removePerk();
-        }
-        let originalPetHealth = pet.health;
-        pet.health -= damage;
-        
-        // Track who killed this pet
-        if (pet.health <= 0) {
-            pet.killedBy = this;
-        }
-        if (damage>0) {
-            pet.timesHurt++;
-        }
-        // knockout
-        if (pet.health < 1) {
-            this.abilityService.triggerKillEvents(this, pet);
-        }
+        this.sellValue += amt;
+    }
 
-        // this hurt ability - new trigger system
-        if (damage > 0) {
-            this.abilityService.triggerHurtEvents(pet, damage);
+    dealDamage(pet: Pet, damage: number) {
+        if (damage > 0 && this.equipment?.name === 'Kiwano') {
+            damage = 10;
+            this.logService.createLog({
+                message: `${this.name} set damage to 10. (Kiwano)`,
+                type: 'equipment',
+                player: this.parent
+            });
+            this.removePerk();
         }
+        dealDamageImpl(this, pet, damage);
+    }
+
+    triggerHurtEventsFor(pet: Pet, damage: number): void {
+        this.abilityService.triggerHurtEvents(pet, damage);
+    }
+
+    triggerKillEventsFor(pet: Pet): void {
+        this.abilityService.triggerKillEvents(this, pet);
+    }
+
+    triggerAttackEventsFor(): void {
+        this.abilityService.triggerAttacksEvents(this);
+    }
+
+    executeAfterAttackEvents(): void {
+        this.abilityService.executeAfterAttackEvents();
+    }
+
+    triggerJumpEventsFor(): void {
+        this.abilityService.triggerJumpEvents(this);
+    }
+
+    createLog(entry: Log): void {
+        this.logService.createLog(entry);
     }
 
     increaseExp(amt) {
@@ -1059,6 +453,10 @@ export abstract class Pet {
         this.increaseHealth(amt);
         this.exp = Math.min(this.exp + amt, 5);
         let timesLevelled = this.level - level;
+        if (timesLevelled > 0) {
+            this.baseSellValue += timesLevelled;
+            this.sellValue += timesLevelled;
+        }
         for (let i = 0; i < timesLevelled; i++) {
             this.logService.createLog({
                 message: `${this.name} leveled up to level ${this.level}.`,
@@ -1072,7 +470,7 @@ export abstract class Pet {
         }
         for (let i = 0; i < Math.min(amt, 5); i++) {
             this.abilityService.triggerFriendGainedExperienceEvents(this);
-        } 
+        }
     }
 
     increaseMana(amt) {
@@ -1089,62 +487,112 @@ export abstract class Pet {
         if (!this.alive) {
             return;
         }
-        
+        if (this.equipment?.name === 'Bloated' && !equipment.equipmentClass?.startsWith('ailment')) {
+            this.logService.createLog({
+                message: `${this.name} blocked gaining ${equipment.name}. (Bloated)`,
+                type: 'equipment',
+                player: this.parent
+            });
+            this.removePerk();
+            return;
+        }
+
+        if (this.handleCorncobEquipment(equipment)) {
+            return;
+        }
+
         // Handle ailments with Ambrosia or White Okra blocking
         if (equipment.equipmentClass == 'ailment-attack' || equipment.equipmentClass == 'ailment-defense' || equipment.equipmentClass == 'ailment-other') {
-            if (this.equipment instanceof Ambrosia) {
-                this.equipment.uses--;
-                this.logService.createLog({
-                    message: `${this.name} blocked ${equipment.name}. (Ambrosia)`,
-                    type: 'equipment',
-                    player: this.parent
-                });
-                if (this.equipment.uses == 0) {
-                    this.removePerk();
-                }
+            if (this.applyAilmentEquipment(equipment, pandorasBoxLevel)) {
                 return;
             }
-            else if (this.equipment instanceof WhiteOkra) {
-                this.logService.createLog({
-                    message: `${this.name} blocked ${equipment.name}. (White Okra)`,
-                    type: 'equipment',
-                    player: this.parent
-                });
-                // Remove equipment immediately after blocking ailment
-                this.removePerk();
-                return;
-            } 
-            else if (this.equipment != null) {
-                this.removePerk(true);
-            }
-            this.applyEquipment(equipment, pandorasBoxLevel);
-
-            this.abilityService.triggerAilmentGainEvents(this, equipment.name);
-        } 
+        }
         // Handle standard equipment
         else {
-            if (equipment instanceof Blackberry) {
-                // Apply equipment first to get multiplier
-                this.applyEquipment(equipment, pandorasBoxLevel);
-             
-                let attackGain = 1 * equipment.multiplier;
-                let healthGain = 2 * equipment.multiplier;
-                this.increaseAttack(attackGain);
-                this.increaseHealth(healthGain); 
-                this.logService.createLog({
-                    message: `${this.name} gained ${attackGain} attack and ${healthGain} health (Blackberry)${equipment.multiplierMessage}`,
-                    type: 'equipment',
-                    player: this.parent,
-                })
-            } else{
-                this.applyEquipment(equipment, pandorasBoxLevel);
-            }
-            
-            this.abilityService.triggerPerkGainEvents(this, equipment.name);
-            this.abilityService.triggerFoodEvents(this, equipment.name)
+            this.applyStandardEquipment(equipment, pandorasBoxLevel);
         }
-        
 
+
+    }
+
+    private handleCorncobEquipment(equipment: Equipment): boolean {
+        if (equipment.name !== 'Corncob') {
+            return false;
+        }
+        const cob = equipment as Corncob;
+        const multiplier = Math.max(1, Math.floor(cob.effectMultiplier ?? 1));
+        if (this.attack <= this.health) {
+            this.increaseAttack(multiplier);
+        } else {
+            this.increaseHealth(multiplier);
+        }
+        this.abilityService.triggerFoodEvents(this, 'corn');
+        return true;
+    }
+
+    private applyAilmentEquipment(equipment: Equipment, pandorasBoxLevel: number): boolean {
+        if (this.equipment?.name === equipment.name) {
+            return true;
+        }
+        if (this.equipment instanceof Ambrosia) {
+            this.equipment.uses--;
+            this.logService.createLog({
+                message: `${this.name} blocked ${equipment.name}. (Ambrosia)`,
+                type: 'equipment',
+                player: this.parent
+            });
+            if (this.equipment.uses == 0) {
+                this.removePerk();
+            }
+            return true;
+        }
+        if (this.equipment instanceof WhiteOkra) {
+            this.logService.createLog({
+                message: `${this.name} blocked ${equipment.name}. (White Okra)`,
+                type: 'equipment',
+                player: this.parent
+            });
+            // Remove equipment immediately after blocking ailment
+            this.removePerk();
+            return true;
+        }
+        if (this.equipment instanceof Strawberry && this.getSparrowLevel() > 0 && this.equipment.uses > 0) {
+            this.logService.createLog({
+                message: `${this.name} blocked ${equipment.name}. (Strawberry)`,
+                type: 'equipment',
+                player: this.parent
+            });
+            this.removePerk();
+            return true;
+        }
+        if (this.equipment != null) {
+            this.removePerk(true);
+        }
+        this.applyEquipment(equipment, pandorasBoxLevel);
+        this.abilityService.triggerAilmentGainEvents(this, equipment.name);
+        return true;
+    }
+
+    private applyStandardEquipment(equipment: Equipment, pandorasBoxLevel: number): void {
+        if (equipment instanceof Blackberry) {
+            // Apply equipment first to get multiplier
+            this.applyEquipment(equipment, pandorasBoxLevel);
+
+            const attackGain = 1 * equipment.multiplier;
+            const healthGain = 2 * equipment.multiplier;
+            this.increaseAttack(attackGain);
+            this.increaseHealth(healthGain);
+            this.logService.createLog({
+                message: `${this.name} gained ${attackGain} attack and ${healthGain} health (Blackberry)${equipment.multiplierMessage}`,
+                type: 'equipment',
+                player: this.parent,
+            })
+        } else {
+            this.applyEquipment(equipment, pandorasBoxLevel);
+        }
+
+        this.abilityService.triggerPerkGainEvents(this, equipment.name);
+        this.abilityService.triggerFoodEvents(this, equipment.name)
     }
 
     applyEquipment(equipment: Equipment, pandorasBoxLevel: number = 1) {
@@ -1165,8 +613,8 @@ export abstract class Pet {
         }
 
         let wasAilment = this.equipment.equipmentClass == 'ailment-attack' ||
-                         this.equipment.equipmentClass == 'ailment-defense' ||
-                         this.equipment.equipmentClass == 'ailment-other';
+            this.equipment.equipmentClass == 'ailment-defense' ||
+            this.equipment.equipmentClass == 'ailment-other';
 
         if (perkOnly && wasAilment) {
             return;
@@ -1189,10 +637,10 @@ export abstract class Pet {
         if (!this.equipment) {
             return;
         }
-        
+
         let multiplier = this.equipment?.multiplier || 1;
         let messages: string[] = [];
-        
+
         // Panther multiplies equipment effects based on level
         if (this.name === 'Panther' &&
             this.equipment.equipmentClass !== 'ailment-attack' &&
@@ -1201,13 +649,13 @@ export abstract class Pet {
             multiplier += this.level;
             messages.push(`x${this.level + 1} (Panther)`);
         }
-        
+
         // Pandora's Box multiplies equipment effects based on toy level
         if (pandorasBoxLevel && pandorasBoxLevel > 1) {
             multiplier += pandorasBoxLevel - 1;
             messages.push(`x${pandorasBoxLevel} (Pandora's Box)`);
         }
-        
+
         // Set the multiplier properties
         this.equipment.multiplier = multiplier;
         this.equipment.multiplierMessage = messages.length > 0 ? ` ${messages.join(' ')}` : '';
@@ -1224,21 +672,26 @@ export abstract class Pet {
     }
 
     get position(): number {
-        if (this == this.parent.pet0) {
+        const parent = this.parent;
+        if (!parent) {
+            return this.savedPosition;
+        }
+        if (this == parent.pet0) {
             return 0;
         }
-        if (this == this.parent.pet1) {
+        if (this == parent.pet1) {
             return 1;
         }
-        if (this == this.parent.pet2) {
+        if (this == parent.pet2) {
             return 2;
         }
-        if (this == this.parent.pet3) {
+        if (this == parent.pet3) {
             return 3;
         }
-        if (this == this.parent.pet4) {
+        if (this == parent.pet4) {
             return 4;
         }
+        return this.savedPosition;
     }
 
     /**
@@ -1247,6 +700,9 @@ export abstract class Pet {
      * @returns 
      */
     petBehind(seenDead = false, deadOrAlive = false): Pet {
+        if (!this.parent) {
+            return null;
+        }
         let currentPosition = this.position !== undefined ? this.position : this.savedPosition;
         for (let i = currentPosition + 1; i < 5; i++) {
             let pet = this.parent.getPetAtPosition(i);
@@ -1270,11 +726,12 @@ export abstract class Pet {
     }
 
     getManticoreMult(): number[] {
+        const parent = this.parent;
+        if (!parent || !parent.petArray) {
+            return [];
+        }
         let mult = [];
-        for (let pet of this.parent.petArray) {
-            // if (!pet.alive) {
-            //     continue;
-            // }
+        for (let pet of parent.petArray) {
             if (pet.name == 'Manticore') {
                 mult.push(pet.level);
             }
@@ -1284,8 +741,12 @@ export abstract class Pet {
     }
 
     getSparrowLevel(): number {
+        const parent = this.parent;
+        if (!parent || !Array.isArray(parent.petArray)) {
+            return 0;
+        }
         let highestLevel = 0;
-        for (let pet of this.parent.petArray) {
+        for (let pet of parent.petArray) {
             if (pet.name == 'Sparrow') {
                 highestLevel = Math.max(highestLevel, pet.level);
             }
@@ -1294,7 +755,7 @@ export abstract class Pet {
     }
 
 
-    getPetsAhead(amt: number, includeOpponent=false, excludeEquipment?: string): Pet[] {
+    getPetsAhead(amt: number, includeOpponent = false, excludeEquipment?: string): Pet[] {
         let targetsAhead = [];
         let petAhead = this.petAhead;
         while (petAhead) {
@@ -1365,8 +826,13 @@ export abstract class Pet {
     }
 
     get petAhead(): Pet {
-        for (let i = this.position - 1; i > -1; i--) {
-            let pet = this.parent.getPetAtPosition(i);
+        const parent = this.parent;
+        if (!parent) {
+            return null;
+        }
+        const start = this.position !== undefined ? this.position : this.savedPosition;
+        for (let i = start - 1; i > -1; i--) {
+            let pet = parent.getPetAtPosition(i);
             if (pet != null && pet.alive) {
                 return pet;
             }
@@ -1375,9 +841,9 @@ export abstract class Pet {
     }
 
     get minExpForLevel(): number {
-        return this.level == 1 ? 0 : this.level == 2 ? 2 : 5;
+        return minExpForLevel(this.level);
     }
-        //need to set when gave perk too
+    //need to set when gave perk too
     setAbilityEquipments() {
         if (this.equipment?.name == 'Eggplant') {
             this.equipment.callback(this);
@@ -1469,7 +935,22 @@ export abstract class Pet {
                 copiedAbility.alwaysIgnorePetLevel = true;
                 copiedAbility.reset();
             }
-            ability.native = false;
+            copiedAbility.native = false;
+
+            // Wrap ability function to show "Owner's SourcePet" in logs
+            const originalFunction = copiedAbility.abilityFunction;
+            const sourcePetName = sourcePet.name;
+            copiedAbility.abilityFunction = (context) => {
+                const originalName = this.name;
+                const baseName = this.baseName ?? originalName;
+                this.name = `${baseName}'s ${sourcePetName}`;
+                try {
+                    originalFunction(context);
+                } finally {
+                    this.name = originalName;
+                }
+            };
+
             this.addAbility(copiedAbility);
         }
 
@@ -1486,7 +967,22 @@ export abstract class Pet {
                 copiedAbility.alwaysIgnorePetLevel = true;
                 copiedAbility.reset();
             }
-            ability.native = false;
+            copiedAbility.native = false;
+
+            // Wrap ability function to show "Owner's SourcePet" in logs
+            const originalFunction = copiedAbility.abilityFunction;
+            const sourcePetName = sourcePet.name;
+            copiedAbility.abilityFunction = (context) => {
+                const originalName = this.name;
+                const baseName = this.baseName ?? originalName;
+                this.name = `${baseName}'s ${sourcePetName}`;
+                try {
+                    originalFunction(context);
+                } finally {
+                    this.name = originalName;
+                }
+            };
+
             this.addAbility(copiedAbility);
         }
     }
@@ -1495,7 +991,7 @@ export abstract class Pet {
         return this.getAbilities(trigger, abilityType).length > 0;
     }
 
-    hasTrigger(trigger: AbilityTrigger, abilityType?: AbilityType, abilityName?: string): boolean {
+    hasTrigger(trigger?: AbilityTrigger, abilityType?: AbilityType, abilityName?: string): boolean {
         return this.getAbilitiesWithTrigger(trigger, abilityType, abilityName).length > 0;
     }
 

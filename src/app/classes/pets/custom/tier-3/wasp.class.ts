@@ -1,6 +1,6 @@
 import { getOpponent } from "app/util/helper-functions";
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -13,9 +13,9 @@ export class Wasp extends Pet {
     tier = 3;
     pack: Pack = 'Custom';
     attack = 2;
-    health = 2;
+    health = 3;
     initAbilities(): void {
-        this.addAbility(new WaspAbility(this, this.logService, this.abilityService));
+        this.addAbility(new WaspAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

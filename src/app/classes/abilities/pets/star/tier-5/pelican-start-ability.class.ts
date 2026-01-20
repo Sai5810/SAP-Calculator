@@ -2,7 +2,7 @@ import { Ability, AbilityContext } from "../../../../ability.class";
 import { GameAPI } from "app/interfaces/gameAPI.interface";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { PetService } from "app/services/pet.service";
+import { PetService } from "app/services/pet/pet.service";
 
 export class PelicanStartAbility extends Ability {
     private logService: LogService;
@@ -41,7 +41,7 @@ export class PelicanStartAbility extends Ability {
                 name: 'Salmon',
                 attack: currentPet.attack,
                 health: currentPet.health,
-                exp: this.minExpForLevel,
+                exp: currentPet.exp,
                 equipment: null,
                 mana: 0
             }, owner.parent);

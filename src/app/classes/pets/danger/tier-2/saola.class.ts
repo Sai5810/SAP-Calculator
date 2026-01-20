@@ -1,5 +1,5 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -10,7 +10,7 @@ export class Saola extends Pet {
     tier = 2;
     pack: Pack = 'Danger';
     attack = 2;
-    health = 3;
+    health = 2;
 
     constructor(protected logService: LogService,
         protected abilityService: AbilityService,

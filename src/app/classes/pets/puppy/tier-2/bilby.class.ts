@@ -1,5 +1,5 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -10,7 +10,7 @@ export class Bilby extends Pet {
     name = "Bilby";
     tier = 2;
     pack: Pack = 'Puppy';
-    attack = 1;
+    attack = 2;
     health = 4;
     initAbilities(): void {
         this.addAbility(new BilbyAbility(this, this.logService));

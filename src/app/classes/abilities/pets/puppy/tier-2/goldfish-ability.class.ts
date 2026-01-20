@@ -1,7 +1,7 @@
 import { Ability, AbilityContext } from "../../../../ability.class";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { AbilityService } from "app/services/ability.service";
+import { AbilityService } from "app/services/ability/ability.service";
 
 export class GoldfishAbility extends Ability {
     private logService: LogService;
@@ -11,7 +11,7 @@ export class GoldfishAbility extends Ability {
         super({
             name: "GoldfishAbility",
             owner: owner,
-            triggers: [],
+            triggers: ['StartTurn'],
             abilityType: "Pet",
             native: true,
             abilitylevel: owner.level,
@@ -24,7 +24,14 @@ export class GoldfishAbility extends Ability {
     }
 
     private executeAbility(context: AbilityContext): void {
-        // Empty implementation - to be filled by user
+        const owner = this.owner;
+        owner.increaseSellValue(this.level);
+        this.logService.createLog({
+            message: `${owner.name} increased its sell value by ${this.level}.`,
+            type: 'ability',
+            player: owner.parent,
+            tiger: context.tiger
+        });
         this.triggerTigerExecution(context);
     }
 

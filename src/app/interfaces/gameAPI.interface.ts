@@ -3,13 +3,17 @@ import { Player } from "../classes/player.class";
 
 export interface GameAPI {
     player: Player;
-    opponet: Player;
+    opponent: Player;
     playerPetPool?: Map<number, string[]>;
     opponentPetPool?: Map<number, string[]>;
     previousShopTier?: number;
     turnNumber?: number;
     playerGoldSpent?: number;
     opponentGoldSpent?: number;
+    playerHardToy?: string | null;
+    playerHardToyLevel?: number;
+    opponentHardToy?: string | null;
+    opponentHardToyLevel?: number;
     oldStork?: boolean;
     komodoShuffle?: boolean;
     mana?: boolean;

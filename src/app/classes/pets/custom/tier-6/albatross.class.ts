@@ -1,4 +1,4 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -12,7 +12,7 @@ export class Albatross extends Pet {
     attack = 5;
     health = 4;
     initAbilities(): void {
-        this.addAbility(new AlbatrossAbility(this, this.logService, this.abilityService));
+        this.addAbility(new AlbatrossAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

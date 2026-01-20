@@ -1,13 +1,12 @@
 import { Ability, AbilityContext } from "../../../../ability.class";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { AbilityService } from "app/services/ability.service";
-import { EquipmentService } from "app/services/equipment.service";
+import { AbilityService } from "app/services/ability/ability.service";
+import { EquipmentService } from "app/services/equipment/equipment.service";
 
 // Import all toy ability classes
 import { TennisBallAbility } from "../../../../abilities/pets/toys/tennis-ball-ability.class";
 import { BalloonAbility } from "../../../../abilities/pets/toys/balloon-ability.class";
-import { GarlicPressAbility } from "../../../../abilities/pets/toys/garlic-press-ability.class";
 import { PlasticSawAbility } from "../../../../abilities/pets/toys/plastic-saw-ability.class";
 import { RadioAbility } from "../../../../abilities/pets/toys/radio-ability.class";
 import { OvenMittsAbility } from "../../../../abilities/pets/toys/oven-mitts-ability.class";
@@ -28,13 +27,17 @@ import { MagicLampAbility } from "../../../../abilities/pets/toys/magic-lamp-abi
 import { MagicCarpetAbility } from "../../../../abilities/pets/toys/magic-carpet-ability.class";
 import { MagicWandAbility } from "../../../../abilities/pets/toys/magic-wand-ability.class";
 import { MagicMirrorAbility } from "../../../../abilities/pets/toys/magic-mirror-ability.class";
-import { NutcrakerAbility } from "../../../../abilities/pets/toys/nutcraker-ability.class";
+import { NutcrackerAbility } from "../../../../abilities/pets/toys/nutcracker-ability.class";
 import { PickaxeAbility } from "../../../../abilities/pets/toys/pickaxe-ability.class";
 import { TreasureChestAbility } from "../../../../abilities/pets/toys/treasure-chest-ability.class";
 import { TinderBoxAbility } from "../../../../abilities/pets/toys/tinder-box-ability.class";
 import { WitchBroomAbility } from "../../../../abilities/pets/toys/witch-broom-ability.class";
 import { TreasureMapAbility } from "../../../../abilities/pets/toys/treasure-map-ability.class";
 import { PandorasBoxAbility } from "../../../../abilities/pets/toys/pandoras-box-ability.class";
+import { StickAbility } from "../../../../abilities/pets/toys/stick-ability.class";
+import { CashRegisterAbility } from "../../../../abilities/pets/toys/cash-register-ability.class";
+import { MicrowaveOvenAbility } from "../../../../abilities/pets/toys/microwave-oven-ability.class";
+import { CameraAbility } from "../../../../abilities/pets/toys/camera-ability.class";
 export class ChameleonAbility extends Ability {
     private logService: LogService;
     private abilityService: AbilityService;
@@ -65,7 +68,7 @@ export class ChameleonAbility extends Ability {
     private executeAbility(context: AbilityContext): void {
         const { gameApi, triggerPet, tiger, pteranodon } = context;
         const owner = this.owner;
-        owner.removeAbility(undefined, 'Pet');
+        owner.removeAbility(this.name, 'Pet');
         this.addToyAbility(owner.parent.toy.name);
 
     }
@@ -74,7 +77,6 @@ export class ChameleonAbility extends Ability {
         const toyAbilityMap: { [key: string]: any } = {
             'Tennis Ball': () => new TennisBallAbility(owner, this.logService),
             'Balloon': () => new BalloonAbility(owner, this.logService),
-            //'Garlic Press': () => new GarlicPressAbility(owner, this.logService, this.abilityService, this.equipmentService),
             'Plastic Saw': () => new PlasticSawAbility(owner, this.logService),
             'Radio': () => new RadioAbility(owner, this.logService),
             'Oven Mitts': () => new OvenMittsAbility(owner, this.logService),
@@ -99,15 +101,19 @@ export class ChameleonAbility extends Ability {
             //'Magic Carpet': () => new MagicCarpetAbility(owner, this.logService, this.abilityService),
             //'Magic Wand': () => new MagicWandAbility(owner, this.logService, this.abilityService),
             //'Magic Mirror': () => new MagicMirrorAbility(owner, this.logService, this.abilityService),
-            //'Nutcracker': () => new NutcrakerAbility(owner, this.logService, this.abilityService),
+            //'Nutcracker': () => new NutcrackerAbility(owner, this.logService, this.abilityService),
             //'Pickaxe': () => new PickaxeAbility(owner, this.logService, this.abilityService),
             //'Rosebud': () => new RosebudAbility(owner, this.logService, this.abilityService),
             //'Red Cape': () => new RedCapeAbility(owner, this.logService, this.abilityService),
             'Treasure Chest': () => new TreasureChestAbility(owner, this.logService),
-           // 'Tinder Box': () => new TinderBoxAbility(owner, this.logService, this.abilityService),
+            // 'Tinder Box': () => new TinderBoxAbility(owner, this.logService, this.abilityService),
             'Witch Broom': () => new WitchBroomAbility(owner, this.logService),
             'Treasure Map': () => new TreasureMapAbility(owner, this.logService),
-            'Pandoras Box': () => new PandorasBoxAbility(owner, this.logService, this.abilityService, this.equipmentService)
+            'Pandoras Box': () => new PandorasBoxAbility(owner, this.logService, this.abilityService, this.equipmentService),
+            'Stick': () => new StickAbility(owner, this.logService),
+            'Cash Register': () => new CashRegisterAbility(owner, this.logService),
+            'Microwave Oven': () => new MicrowaveOvenAbility(owner, this.logService, this.equipmentService),
+            'Camera': () => new CameraAbility(owner, this.logService)
         };
 
         const abilityFactory = toyAbilityMap[toyName];

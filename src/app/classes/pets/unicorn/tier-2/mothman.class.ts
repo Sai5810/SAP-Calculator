@@ -1,4 +1,4 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -10,13 +10,13 @@ export class Mothman extends Pet {
     tier = 2;
     pack: Pack = 'Unicorn';
     attack = 3;
-    health = 2;
+    health = 3;
 
     initAbilities(): void {
         this.addAbility(new MothmanAbility(this, this.logService));
         super.initAbilities();
     }
-    
+
     constructor(protected logService: LogService,
         protected abilityService: AbilityService,
         parent: Player,

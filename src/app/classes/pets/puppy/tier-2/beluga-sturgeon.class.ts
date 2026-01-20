@@ -1,5 +1,5 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Rice } from "../../../equipment/puppy/rice.class";
@@ -8,7 +8,6 @@ import { Player } from "../../../player.class";
 import { Dolphin } from "../../turtle/tier-3/dolphin.class";
 import { BelugaSturgeonAbility } from "../../../abilities/pets/puppy/tier-2/beluga-sturgeon-ability.class";
 
-// TODO - bring into lab to determine behavior with spawn and other pet abilities
 export class BelugaSturgeon extends Pet {
     name = "Beluga Sturgeon";
     tier = 2;

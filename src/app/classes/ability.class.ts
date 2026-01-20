@@ -1,10 +1,126 @@
 import { GameAPI } from "../interfaces/gameAPI.interface";
 import { Pet } from "./pet.class";
+import { minExpForLevel } from "../util/leveling";
 
 export type AbilityType = 'Pet' | 'Equipment';
 
-export type AbilityTrigger = 'None' | 'Composite' | 'StartTurn' | 'EndTurn' | 'StartBattle' | 'ShopUpgrade' | 'ThisBought' | 'ThisSold' | 'FoodBought' | 'FoodEatenByAny' | 'ThisSummoned' | 'OtherSummoned' | 'EnemySummoned' | 'FriendSummoned' | 'ThisTransformed' | 'EnemyPushed' | 'BeforeThisAttacks' | 'BeforeFriendAttacks' | 'ThisDied' | 'BeforeThisDies' | 'ThisDiesForPerks' | 'FriendDied' | 'ThisKilled' | 'ThisHurt' | 'EnemyHurt' | 'ThisLeveledUp' | 'FriendLeveledUp' | 'AnyLeveledUp' | 'ShopRolled' | 'FriendAheadDied' | 'Tier1FriendBought' | 'FoodEatenByThis' | 'FriendSold' | 'FriendAheadAttacked' | 'FriendBought' | 'FriendHurt' | 'FriendlyLeveledUp' | 'CompositeEnemySummonedOrPushed' | 'AppleEatenByThis' | 'AdjacentFriendsDie' | 'EnemyDied' | 'FriendAheadHurt' | 'SpendGold12' | 'FriendDied3' | 'TwoFriendsDied' | 'FriendSummoned2' | 'FriendSummoned3' | 'SpendGold7' | 'ThisGainedPerk' | 'ThisLostPerk' | 'ThisAttacked' | 'ClearFront' | 'AllEnemiesDied' | 'FriendAttacked' | 'FriendlyAttacked3' | 'FriendlyAttacked2' | 'FriendAttacked4' | 'FriendAttacked5' | 'BuyFromShop' | 'SpendGold8' | 'SpendGold' | 'SpendGold2' | 'SpendGold3' | 'SpendGold4' | 'SpendGold5' | 'SpendGold6' | 'SpendGold9' | 'SpendGold10' | 'SpendGold11' | 'Roll2' | 'Roll3' | 'Roll4' | 'Roll5' | 'Roll6' | 'Roll7' | 'Roll8' | 'Roll9' | 'Roll10' | 'FriendBought2' | 'FriendBought3' | 'FriendBought4' | 'FriendGainsAilment' | 'ToyBroke' | 'ToySummoned' | 'ThisBroke' | 'AfterTurns2' | 'AfterTurns3' | 'AfterTurns4' | 'ThisGainedPerkOrAilment' | 'FriendGainsPerk' | 'ThisHurtOrFaint' | 'FriendSold2' | 'FriendSold3' | 'FriendSold4' | 'FriendSold5' | 'ThisBoughtOrToyBroke' | 'StartBattleOrTurn' | 'AllFriendsFainted' | 'BeforeStartBattle' | 'FriendlyToyBroke' | 'FriendlyToySummoned' | 'EndTurn2' | 'EndTurn3' | 'EndTurn4' | 'EndTurn5' | 'FriendlyGainsPerk' | 'FoodBought2' | 'FoodBought3' | 'FoodBought4' | 'FoodBought5' | 'FriendJumped' | 'FriendJumped2' | 'FriendJumped3' | 'FriendGainedAttack' | 'FriendGainedHealth' | 'ThisGainedAttack' | 'ThisGainedHealth' | 'FriendSummoned4' | 'FriendSummoned5' | 'ShopRewardStocked' | 'ThisGainedMana' | 'EnemyGainedAilment' | 'FriendlyLeveledUp2' | 'ThisGainedAilment' | 'ThisGainedStrawberry' | 'EnemyHurtOrPushed' | 'AnyoneAttack' | 'ThisKilledEnemy' | 'BeforeSell' | 'SellFriend' | 'FriendSoldOrFaint' | 'FriendHurt2' | 'FriendHurt3' | 'FriendHurt4' | 'FriendHurt5' | 'Level3FriendSold' | 'FriendTransformed' | 'Disabled137' | 'Disabled138' | 'Disabled139' | 'Disabled140' | 'Disabled141' | 'Disabled142' | 'Disabled143' | 'Disabled144' | 'SpendAttack' | 'SpendHealth' | 'FriendSpendAttack' | 'FriendSpendHealth' | 'FriendSpendsAttackOrHealth' | 'FriendTransformed3' | 'EnemyHurt10' | 'EnemyHurt20' | 'FriendTransformed5' | 'ThisHurt5' | 'CompositeStartOfBattleOrTransformed' | 'CompositeBuyOrStartTurn' | 'FriendHurtOrFaint' | 'EnemyHurt5' | 'FriendFainted5' | 'FriendTransformedInBattle' | 'FriendLostPerk' | 'LostStrawberry' | 'FriendLostStrawberry' | 'FriendGainedStrawberry' | 'ThisHurt2' | 'ThisHurt3' | 'ThisHurt4' | 'BeeSummoned' | 'FriendFlung' | 'ThisSummonedLate' | 'AnythingBought' | 'AnyoneGainedAilment' | 'Eat2' | 'Eat3' | 'Eat4' | 'Eat5' | 'CornEatenByThis' | 'CornEatenByFriend' | 'AnyoneFlung' | 'GainExp' | 'FriendGainedExp' | 'AppleEatenByThis2' | 'BeforeRoll' | 'PleaseDontShowUpInLocalizationFiles' | 'FriendDied4' | 'FriendDied5' | 'FriendlyGainedStrawberry' | 'FoodEatenByFriend' | 'FoodEatenByFriendly' | 'AnyoneHurt' | 'FriendlyAttacked' | 'ShopFoodEatenByThis' | 'FriendlyGainedExp' | 'PetDied' | 'FriendlyAbilityActivated' | 'FriendlyAbilityActivated5' | 'EnemyAttacked8' | 'EnemyAttacked7' | 'EnemyAbilityActivated' | 'FriendHurt6' | 'FriendAheadGainedHealth' | 'AdjacentFriendAttacked' | 'BeforeAdjacentFriendAttacked' | 'LostAttack' | 'EnemyAttacked2' | 'AdjacentFriendsHurt' | 'EnemyAttacked10' | 'AnyoneBehindHurt' | 'AnyoneJumped' | 'BeforeFriendTransformed' | 'EnemyAttacked' | 'FriendJumpedOrTransformed' | 'EnemyAttacked5' | 'AnyoneGainedWeak' | 'ThisFirstAttack' | 'PetSold' | 'PetGainedAilment' | 'PetLostPerk' | 'BeforeFirstAttack' | 'BeforeFriendlyAttack' | 'EnemyFaint' | 'EnemyFaint2' | 'EnemyFaint3' | 'EnemyFaint4' | 'EnemyFaint5'
-| 'SpecialEndTurn' | 'manaSnipe' | 'goldenRetrieverSummons' | 'KitsuneFriendDies' | 'BeforeFirstNonJumpAttack';
+export type NumberedTriggerBase =
+    | 'SpendGold'
+    | 'FriendDied'
+    | 'FriendSummoned'
+    | 'FriendlyAttacked'
+    | 'FriendAttacked'
+    | 'Roll'
+    | 'FriendBought'
+    | 'FoodBought'
+    | 'AfterTurns'
+    | 'FriendSold'
+    | 'EndTurn'
+    | 'FriendJumped'
+    | 'FriendlyLeveledUp'
+    | 'FriendHurt'
+    | 'FriendTransformed'
+    | 'EnemyHurt'
+    | 'ThisHurt'
+    | 'EnemyAttacked'
+    | 'EnemyFaint'
+    | 'Eat'
+    | 'AppleEatenByThis'
+    | 'FriendlyAbilityActivated'
+    | 'FriendFainted';
+
+export type AbilityTriggerBase =
+    | 'None'
+    | 'StartTurn'
+    | 'EndTurn'
+    | 'StartBattle'
+    | 'ShopUpgrade'
+    | 'ThisBought'
+    | 'ThisSold'
+    | 'FoodEatenByAny'
+    | 'ThisSummoned'
+    | 'EnemySummoned'
+    | 'FriendSummoned'
+    | 'ThisTransformed'
+    | 'EnemyPushed'
+    | 'BeforeThisAttacks'
+    | 'BeforeFriendAttacks'
+    | 'ThisDied'
+    | 'BeforeThisDies'
+    | 'FriendDied'
+    | 'ThisKilled'
+    | 'ThisHurt'
+    | 'EnemyHurt'
+    | 'ThisLeveledUp'
+    | 'FriendLeveledUp'
+    | 'AnyLeveledUp'
+    | 'FriendAheadDied'
+    | 'Tier1FriendBought'
+    | 'FoodEatenByThis'
+    | 'FriendSold'
+    | 'FriendAheadAttacked'
+    | 'FriendBought'
+    | 'FriendHurt'
+    | 'FriendlyLeveledUp'
+    | 'AppleEatenByThis'
+    | 'AdjacentFriendsDie'
+    | 'EnemyDied'
+    | 'FriendAheadHurt'
+    | 'ThisGainedPerk'
+    | 'ThisLostPerk'
+    | 'ThisAttacked'
+    | 'ClearFront'
+    | 'FriendAttacked'
+    | 'FriendGainsAilment'
+    | 'FriendGainsPerk'
+    | 'BeforeStartBattle'
+    | 'FriendlyToyBroke'
+    | 'FriendlyGainsPerk'
+    | 'FriendJumped'
+    | 'ThisGainedMana'
+    | 'EnemyGainedAilment'
+    | 'ThisGainedAilment'
+    | 'ThisGainedStrawberry'
+    | 'AnyoneAttack'
+    | 'ThisKilledEnemy'
+    | 'FriendTransformed'
+    | 'FriendLostPerk'
+    | 'LostStrawberry'
+    | 'FriendLostStrawberry'
+    | 'FriendGainedStrawberry'
+    | 'BeeSummoned'
+    | 'FriendFlung'
+    | 'AnyoneGainedAilment'
+    | 'CornEatenByThis'
+    | 'CornEatenByFriend'
+    | 'AnyoneFlung'
+    | 'FriendGainedExp'
+    | 'FriendlyGainedStrawberry'
+    | 'FoodEatenByFriend'
+    | 'FoodEatenByFriendly'
+    | 'AnyoneHurt'
+    | 'FriendlyAttacked'
+    | 'FriendlyGainedExp'
+    | 'PetDied'
+    | 'FriendlyAbilityActivated'
+    | 'AdjacentFriendAttacked'
+    | 'BeforeAdjacentFriendAttacked'
+    | 'AdjacentFriendsHurt'
+    | 'AnyoneBehindHurt'
+    | 'AnyoneJumped'
+    | 'EnemyAttacked'
+    | 'AnyoneGainedWeak'
+    | 'ThisFirstAttack'
+    | 'PetLostPerk'
+    | 'BeforeFirstAttack'
+    | 'BeforeFriendlyAttack'
+    | 'EnemyFaint'
+    | 'SpecialEndTurn'
+    | 'manaSnipe'
+    | 'goldenRetrieverSummons'
+    | 'KitsuneFriendDies';
+
+export type AbilityTrigger = AbilityTriggerBase | `${NumberedTriggerBase}${number}`;
 
 export interface AbilityContext {
     gameApi: GameAPI;
@@ -26,7 +142,13 @@ export interface AbilityFunction {
 export class Ability {
     public name?: string;
     public owner: Pet;
-    public triggers: AbilityTrigger[];
+    protected _triggers: AbilityTrigger[] = [];
+    public get triggers(): AbilityTrigger[] {
+        return this._triggers;
+    }
+    public set triggers(value: AbilityTrigger[]) {
+        this._triggers = value;
+    }
     public abilityType: AbilityType;
     public maxUses: number;
     public currentUses: number;
@@ -57,8 +179,9 @@ export class Ability {
         this.triggers = config.triggers;
         this.abilityType = config.abilityType;
         this.maxUses = config.maxUses ?? -1; // -1 means unlimited
-        this.initialCurrentUses = config.owner.triggersConsumed;
-        this.currentUses = this.initialCurrentUses;
+        const initialUses = config.initialCurrentUses ?? (config.abilityType === 'Pet' ? config.owner.triggersConsumed : 0);
+        this.initialCurrentUses = initialUses;
+        this.currentUses = initialUses;
         this.abilityLevel = config.abilitylevel ?? 1;
         this.condition = config.condition;
         this.abilityFunction = config.abilityFunction;
@@ -100,11 +223,12 @@ export class Ability {
             if (this.condition && !this.condition(context)) {
                 return false;
             }
-
-            this.abilityFunction(context);
-            if (!tiger) {
-                this.currentUses++;
+            // Always increment usage, even for Tiger (logic handled in triggerTigerExecution/calls to this)
+            this.currentUses++;
+            if (this.abilityType === 'Pet') {
+                this.owner.triggersConsumed = Math.max(this.owner.triggersConsumed, this.currentUses);
             }
+            this.abilityFunction(context);
             return true;
         } catch (error) {
             console.error(`Error executing ability ${this.name || 'unnamed'}:`, error);
@@ -113,13 +237,14 @@ export class Ability {
     }
 
     // Tiger check method - matches Pet.class.ts:676-681
-    tigerCheck(tiger?: boolean): boolean {
+    tigerCheck(tiger?: boolean, tigerPetOverride?: Pet): boolean {
         // If ignoreRepeats is true, Tiger should not trigger this ability again
         if (this.ignoreRepeats || this.abilityType != 'Pet') {
             return false;
         }
 
-        if ((this.owner).petBehind(true, true) && (this.owner).petBehind(true, true)?.hasTrigger(null, null, 'TigerAbility') && (tiger == null || tiger == false)) {
+        const tigerPet = tigerPetOverride ?? (this.owner).petBehind(true, true);
+        if (tigerPet && tigerPet.hasTrigger(undefined, undefined, 'TigerAbility') && (tiger == null || tiger == false)) {
             return true;
         }
         return false;
@@ -128,7 +253,13 @@ export class Ability {
     // Tiger execution method for new framework
     // Subclasses should call this at the end of their ability logic
     protected triggerTigerExecution(context: AbilityContext): void {
-        if (!this.tigerCheck(context.tiger)) {
+        const tigerPet = (context as any).tigerSupportPet ?? this.owner.petBehind(true, true);
+        if (!this.tigerCheck(context.tiger, tigerPet)) {
+            return;
+        }
+
+        // Check usages for Tiger trigger
+        if (!this.canUse()) {
             return;
         }
 
@@ -137,15 +268,16 @@ export class Ability {
         let originalIgnorePetLevel = this.alwaysIgnorePetLevel;
 
         // Set ability to use Tiger's level
-        this.abilityLevel = this.owner.petBehind(null, true).level;
+        this.abilityLevel = tigerPet.level;
         this.alwaysIgnorePetLevel = true;
 
         // Execute ability again with Tiger's level using updated context
-        const tigerContext: AbilityContext = {
-            ...context,
-            tiger: true
-        };
-        this.abilityFunction(tigerContext);
+        // Extract params to pass to execute()
+        const { gameApi, triggerPet, tiger, pteranodon, ...customParams } = context;
+
+        // Pass tiger=true so it marks it as a tiger execution in valid checks if needed, 
+        // but usages are now incremented regardless in execute()
+        this.execute(gameApi, triggerPet, true, pteranodon, customParams);
 
         // Restore original settings
         this.abilityLevel = originalAbilityLevel;
@@ -159,7 +291,7 @@ export class Ability {
         this.currentUses = this.initialCurrentUses;
     }
 
-    copy(newOwner: Pet): Ability {
+    copy(newOwner: Pet): Ability | null {
         return null;
     }
 
@@ -175,6 +307,6 @@ export class Ability {
     }
 
     get minExpForLevel(): number {
-        return this.level == 1 ? 0 : this.level == 2 ? 2 : 5;
+        return minExpForLevel(this.level);
     }
 }

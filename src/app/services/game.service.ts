@@ -1,9 +1,9 @@
 import { Injectable } from "@angular/core";
 import { Player } from "../classes/player.class";
 import { GameAPI } from "../interfaces/gameAPI.interface";
-import { AbilityService } from "./ability.service";
+import { AbilityService } from "./ability/ability.service";
 import { Pet } from "../classes/pet.class";
-import { PetService } from "./pet.service";
+import { PetService } from "./pet/pet.service";
 
 @Injectable({
     providedIn: "root"
@@ -18,7 +18,7 @@ export class GameService {
     init(player: Player, opponent: Player) {
         this.gameApi = {
             player: player,
-            opponet: opponent
+            opponent: opponent
         }
     }
 

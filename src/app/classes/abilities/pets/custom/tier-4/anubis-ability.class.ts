@@ -1,4 +1,4 @@
-import { Ability, AbilityContext } from "../../../../ability.class";
+import { Ability, AbilityContext, AbilityType } from "../../../../ability.class";
 import { GameAPI } from "app/interfaces/gameAPI.interface";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
@@ -22,27 +22,29 @@ export class AnubisAbility extends Ability {
     }
 
     private executeAbility(context: AbilityContext): void {
-        
-        const { gameApi, triggerPet, tiger, pteranodon } = context;const owner = this.owner;
 
-        let faintPets = owner.parent.petArray.filter(pet => pet.faintPet);
-        for (let pet of faintPets) {
-            if (!pet.alive) {
-                continue;
-            }
-            if (pet.tier <= this.level * 2) {
-                this.logService.createLog({
-                    message: `${owner.name} activated ${pet.name}'s faint ability.`,
-                    type: 'ability',
-                    player: owner.parent,
-                    tiger: tiger,
-                    pteranodon: pteranodon
-                });
-                pet.activateAbilities(undefined, gameApi, 'Pet');
-            }
+        const { gameApi, tiger, pteranodon } = context;
+        const owner = this.owner;
+        const thresholds = [2, 4, 6];
+        const tierLimit = thresholds[Math.min(Math.max(this.level, 1) - 1, thresholds.length - 1)];
+
+        const faintFriends = owner.parent.petArray
+            .filter((friend) => friend && friend !== owner && friend.alive && friend.isFaintPet() && friend.tier <= tierLimit)
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+            .slice(0, 2);
+
+        for (const friend of faintFriends) {
+            this.logService.createLog({
+                message: `${owner.name} activated ${friend.name}'s faint ability (tier ${friend.tier} <= ${tierLimit}).`,
+                type: 'ability',
+                player: owner.parent,
+                tiger: tiger,
+                pteranodon: pteranodon
+            });
+
+            friend.activateAbilities('ThisDied', gameApi, 'Pet' as AbilityType);
         }
 
-        // Tiger system: trigger Tiger execution at the end
         this.triggerTigerExecution(context);
     }
 

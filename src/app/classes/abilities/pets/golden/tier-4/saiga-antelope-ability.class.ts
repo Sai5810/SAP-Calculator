@@ -2,7 +2,7 @@ import { Ability, AbilityContext } from "../../../../ability.class";
 import { GameAPI } from "app/interfaces/gameAPI.interface";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { AbilityService } from "app/services/ability.service";
+import { AbilityService } from "app/services/ability/ability.service";
 
 export class SaigaAntelopeAbility extends Ability {
     private logService: LogService;
@@ -12,7 +12,7 @@ export class SaigaAntelopeAbility extends Ability {
         super({
             name: 'SaigaAntelopeAbility',
             owner: owner,
-            triggers: ['TwoFriendsDied'],
+            triggers: ['FriendDied2'],
             abilityType: 'Pet',
             native: true,
             abilitylevel: owner.level,
@@ -29,6 +29,13 @@ export class SaigaAntelopeAbility extends Ability {
         const { gameApi, triggerPet, tiger, pteranodon } = context;const owner = this.owner;
         const trumpetTargetResp = owner.parent.resolveTrumpetGainTarget(owner);
         trumpetTargetResp.player.gainTrumpets(this.level * 3, owner, pteranodon, undefined, undefined, trumpetTargetResp.random);
+        this.logService.createLog({
+            message: `${owner.name} gave ${this.level * 3} trumpets after a friend died.`,
+            type: 'ability',
+            player: owner.parent,
+            tiger: tiger,
+            pteranodon: pteranodon
+        });
 
         // Tiger system: trigger Tiger execution at the end
         this.triggerTigerExecution(context);

@@ -1,5 +1,5 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -13,7 +13,7 @@ export class Zebra extends Pet {
     attack = 3;
     health = 5;
     initAbilities(): void {
-        this.addAbility(new ZebraAbility(this, this.logService, this.abilityService));
+        this.addAbility(new ZebraAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

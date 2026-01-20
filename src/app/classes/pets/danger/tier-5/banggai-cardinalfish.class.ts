@@ -1,4 +1,4 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -10,7 +10,7 @@ export class BanggaiCardinalfish extends Pet {
     tier = 5;
     pack: Pack = 'Danger';
     attack = 4;
-    health = 5;
+    health = 7;
 
     initAbilities(): void {
         this.addAbility(new BanggaiCardinalfishAbility(this, this.logService));

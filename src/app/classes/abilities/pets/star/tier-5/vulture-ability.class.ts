@@ -2,7 +2,7 @@ import { Ability, AbilityContext } from "../../../../ability.class";
 import { GameAPI } from "app/interfaces/gameAPI.interface";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { AbilityService } from "app/services/ability.service";
+import { AbilityService } from "app/services/ability/ability.service";
 
 export class VultureAbility extends Ability {
     private logService: LogService;
@@ -12,7 +12,7 @@ export class VultureAbility extends Ability {
         super({
             name: 'VultureAbility',
             owner: owner,
-            triggers: ['TwoFriendsDied'],
+            triggers: ['FriendDied2'],
             abilityType: 'Pet',
             native: true,
             abilitylevel: owner.level,
@@ -35,6 +35,12 @@ export class VultureAbility extends Ability {
         }
         let power = this.level * 4;
         owner.snipePet(targetResp.pet, power, targetResp.random, tiger);
+        this.logService.createLog({
+            message: `${owner.name} sniped ${targetResp.pet.name} for ${power} after a friend died.`,
+            type: 'ability',
+            player: owner.parent,
+            tiger: tiger
+        });
         // Tiger system: trigger Tiger execution at the end
         this.triggerTigerExecution(context);
     }

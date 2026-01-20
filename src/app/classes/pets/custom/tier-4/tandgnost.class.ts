@@ -1,5 +1,5 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { shuffle } from "../../../../util/helper-functions";
 import { Equipment } from "../../../equipment.class";
@@ -14,7 +14,7 @@ export class Tandgnost extends Pet {
     attack = 5;
     health = 5;
     initAbilities(): void {
-        this.addAbility(new TandgnostAbility(this, this.logService, this.abilityService));
+        this.addAbility(new TandgnostAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

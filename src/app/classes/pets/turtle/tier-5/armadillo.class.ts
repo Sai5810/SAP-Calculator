@@ -1,5 +1,5 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { getOpponent } from "../../../../util/helper-functions";
 import { Equipment } from "../../../equipment.class";
@@ -11,8 +11,8 @@ export class Armadillo extends Pet {
     name = "Armadillo";
     tier = 5;
     pack: Pack = 'Turtle';
-    attack = 2;
-    health = 10;
+    attack = 4;
+    health = 8;
     initAbilities(): void {
         this.addAbility(new ArmadilloAbility(this, this.logService));
         super.initAbilities();

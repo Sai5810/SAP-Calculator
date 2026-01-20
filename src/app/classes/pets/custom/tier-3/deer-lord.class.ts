@@ -1,6 +1,6 @@
 import { getOpponent } from "app/util/helper-functions";
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -13,8 +13,8 @@ export class DeerLord extends Pet {
     pack: Pack = 'Custom';
     attack = 4;
     health = 3;
-    initAbilities(): void {
-        this.addAbility(new DeerLordAbility(this, this.logService, this.abilityService));
+    override initAbilities(): void {
+        this.addAbility(new DeerLordAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

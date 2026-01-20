@@ -1,6 +1,6 @@
 import { GameAPI } from "../interfaces/gameAPI.interface";
 import { LogService } from "../services/log.service";
-import { ToyService } from "../services/toy.service";
+import { ToyService } from "../services/toy/toy.service";
 import { Pet } from "./pet.class";
 import { Player } from "./player.class";
 
@@ -13,10 +13,12 @@ export class Toy {
     friendlyLevelUp?(gameApi?: GameAPI, pet?: Pet, puma?: boolean, level?: number);
     friendFaints?(gameApi?: GameAPI, pet?: Pet, puma?: boolean, level?: number);
     friendJumped?(gameApi?: GameAPI, pet?: Pet, puma?: boolean, level?: number);
+    allEnemiesFainted?(gameApi?: GameAPI, puma?: boolean);
     parent: Player;
     level: number;
     tier: number;
     used: boolean = false;
+    suppressFriendFaintLog = false;
     triggers = 0;
     constructor(protected logService: LogService, protected toyService: ToyService, parent: Player, level: number) {
         this.parent = parent;

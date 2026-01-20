@@ -1,7 +1,7 @@
 import { Ability, AbilityContext } from "../../../../ability.class";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { AbilityService } from "app/services/ability.service";
+import { AbilityService } from "app/services/ability/ability.service";
 
 export class DragonAbility extends Ability {
     private logService: LogService;
@@ -11,10 +11,11 @@ export class DragonAbility extends Ability {
         super({
             name: 'DragonAbility',
             owner: owner,
-            triggers: [],
+            triggers: ['Tier1FriendBought'],
             abilityType: 'Pet',
             native: true,
             abilitylevel: owner.level,
+            maxUses: 4,
             abilityFunction: (context) => {
                 this.executeAbility(context);
             }
@@ -24,7 +25,24 @@ export class DragonAbility extends Ability {
     }
 
     private executeAbility(context: AbilityContext): void {
-        // Empty implementation - to be filled by user
+        const owner = this.owner;
+        const buff = this.level;
+        const targets = owner.parent.petArray.filter((pet) => pet && pet.alive);
+        if (targets.length === 0) {
+            return;
+        }
+
+        for (const pet of targets) {
+            pet.increaseAttack(buff);
+            pet.increaseHealth(buff);
+        }
+
+        this.logService.createLog({
+            message: `${owner.name} gave friends +${buff} attack and +${buff} health.`,
+            type: 'ability',
+            player: owner.parent,
+            tiger: context.tiger
+        });
         this.triggerTigerExecution(context);
     }
 

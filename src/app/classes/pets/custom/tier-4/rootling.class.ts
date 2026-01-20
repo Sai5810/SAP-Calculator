@@ -1,5 +1,4 @@
-import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -13,7 +12,7 @@ export class Rootling extends Pet {
     attack = 1;
     health = 5;
     initAbilities(): void {
-        this.addAbility(new RootlingAbility(this, this.logService, this.abilityService));
+        this.addAbility(new RootlingAbility(this, this.logService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

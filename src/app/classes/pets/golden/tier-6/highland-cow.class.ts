@@ -1,4 +1,4 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -10,7 +10,7 @@ export class HighlandCow extends Pet {
     tier = 6;
     pack: Pack = 'Golden';
     attack = 4;
-    health = 12;
+    health = 6;
     initAbilities(): void {
         this.addAbility(new HighlandCowAbility(this, this.logService));
         super.initAbilities();

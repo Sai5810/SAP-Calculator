@@ -1,4 +1,4 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
@@ -9,8 +9,8 @@ export class Kakapo extends Pet {
     name = "Kakapo";
     tier = 4;
     pack: Pack = 'Danger';
-    attack = 3;
-    health = 5;
+    attack = 4;
+    health = 4;
 
     initAbilities(): void {
         this.addAbility(new KakapoAbility(this, this.logService));

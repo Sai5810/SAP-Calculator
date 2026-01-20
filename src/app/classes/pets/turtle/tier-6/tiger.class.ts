@@ -1,15 +1,10 @@
 import { TigerAbility } from "app/classes/abilities/pets/turtle/tier-6/tiger-ability.class";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
 import { Player } from "../../../player.class";
 
-// TODO bug 
-// - Elephant in front of tiger,
-// - if kills tiger, extra triggers dont go off
-
-// - verify tiger behaviors, in general
 export class Tiger extends Pet {
     name = "Tiger";
     tier = 6;

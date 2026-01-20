@@ -2,7 +2,7 @@ import { Ability, AbilityContext } from "../../../../ability.class";
 import { GameAPI } from "app/interfaces/gameAPI.interface";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { AbilityService } from "app/services/ability.service";
+import { AbilityService } from "app/services/ability/ability.service";
 import { Crisp } from "../../../../equipment/ailments/crisp.class";
 
 export class BoitataAbility extends Ability {
@@ -10,8 +10,13 @@ export class BoitataAbility extends Ability {
     private abilityService: AbilityService;
 
     reset(): void {
-        this.maxUses = this.level;
+        this.maxUses = this.level * 2;
         super.reset();
+    }
+
+    initUses(): void {
+        this.maxUses = this.level * 2;
+        super.initUses();
     }
 
     constructor(owner: Pet, logService: LogService, abilityService: AbilityService) {
@@ -22,7 +27,7 @@ export class BoitataAbility extends Ability {
             abilityType: 'Pet',
             native: true,
             abilitylevel: owner.level,
-            maxUses: owner.level,
+            maxUses: owner.level * 2,
             abilityFunction: (context) => {
                 this.executeAbility(context);
             }
@@ -35,7 +40,8 @@ export class BoitataAbility extends Ability {
         
         const { gameApi, triggerPet, tiger, pteranodon } = context;const owner = this.owner;
 
-        let targetResp = owner.parent.opponent.getFurthestUpPet(owner);
+        let excludePets = owner.parent.opponent.getPetsWithEquipment('Crisp');
+        let targetResp = owner.parent.opponent.getFurthestUpPet(owner, excludePets);
         let target = targetResp.pet;
         if (target == null) {
             return;

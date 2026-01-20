@@ -1,10 +1,11 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
 import { Player } from "../../../player.class";
 import { LeviathanAbility } from "../../../abilities/pets/custom/tier-6/leviathan-ability.class";
+import { PetService } from "../../../../services/pet/pet.service";
 
 export class Leviathan extends Pet {
     name = "Leviathan";
@@ -13,11 +14,12 @@ export class Leviathan extends Pet {
     attack = 6;
     health = 10;
     initAbilities(): void {
-        this.addAbility(new LeviathanAbility(this, this.logService, this.abilityService));
+        this.addAbility(new LeviathanAbility(this, this.logService, this.petService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,
         protected abilityService: AbilityService,
+        protected petService: PetService,
         parent: Player,
         health?: number,
         attack?: number,

@@ -1,13 +1,11 @@
-import { PetService } from "app/services/pet.service";
+import { PetService } from "app/services/pet/pet.service";
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
 import { Player } from "../../../player.class";
 import { ParrotAbility } from "app/classes/abilities/pets/turtle/tier-4/parrot-ability.class";
-// TODO - verify parrot has all ability methods
-// fix bug with parrot copying parrot working despite order
 export class Parrot extends Pet {
     name = "Parrot";
     tier = 4;

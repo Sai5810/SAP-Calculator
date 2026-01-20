@@ -1,6 +1,6 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
-import { PetService } from "../../../../services/pet.service";
+import { PetService } from "../../../../services/pet/pet.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
 import { Player } from "../../../player.class";
@@ -13,7 +13,7 @@ export class HarpyEagle extends Pet {
     attack = 6;
     health = 6;
     initAbilities(): void {
-        this.addAbility(new HarpyEagleAbility(this, this.logService, this.petService, this.abilityService));
+        this.addAbility(new HarpyEagleAbility(this, this.logService, this.petService));
         super.initAbilities();
     }
     constructor(protected logService: LogService,

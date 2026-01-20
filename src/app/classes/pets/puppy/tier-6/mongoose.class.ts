@@ -1,17 +1,22 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { getOpponent } from "../../../../util/helper-functions";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
 import { Player } from "../../../player.class";
+import { MongooseAbility } from "../../../abilities/pets/puppy/tier-6/mongoose-ability.class";
 
 export class Mongoose extends Pet {
     name = "Mongoose";
     tier = 6;
     pack: Pack = 'Puppy';
-    attack = 4;
-    health = 3;
+    attack = 7;
+    health = 6;
+    initAbilities(): void {
+        this.addAbility(new MongooseAbility(this, this.logService, this.abilityService));
+        super.initAbilities();
+    }
     constructor(protected logService: LogService,
         protected abilityService: AbilityService,
         parent: Player,

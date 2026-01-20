@@ -1,15 +1,20 @@
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
 import { Player } from "../../../player.class";
+import { FarmerDogAbility } from "../../../abilities/pets/custom/tier-6/farmer-dog-ability.class";
 
-export class Fish extends Pet {
+export class FarmerDog extends Pet {
     name = "Farmer Dog";
     tier = 6;
     pack: Pack = 'Custom';
     health = 3;
     attack = 4;
+    initAbilities(): void {
+        this.addAbility(new FarmerDogAbility(this, this.logService));
+        super.initAbilities();
+    }
     constructor(protected logService: LogService,
         protected abilityService: AbilityService,
         parent: Player,

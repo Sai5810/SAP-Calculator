@@ -2,7 +2,8 @@ import { Ability, AbilityContext } from "../../../../ability.class";
 import { GameAPI } from "app/interfaces/gameAPI.interface";
 import { Pet } from "../../../../pet.class";
 import { LogService } from "app/services/log.service";
-import { PetService } from "app/services/pet.service";
+import { PetService } from "app/services/pet/pet.service";
+import { DANGERS_AND_USEFUL_POOLS } from "app/data/dangers-and-useful";
 
 export class RolowayMonkeyAbility extends Ability {
     private logService: LogService;
@@ -34,7 +35,7 @@ export class RolowayMonkeyAbility extends Ability {
         }
 
         // Pool of useful hurt pets to transform into
-        const petNames = ["Camel", "Peacock", "Porcupine", "Lizard", "Guineafowl"];
+        const petNames = DANGERS_AND_USEFUL_POOLS.rolowayMonkey;
 
         for (let target of targetResp.pets) {
             let randomIndex = Math.floor(Math.random() * petNames.length);

@@ -1,12 +1,11 @@
 import { GameAPI } from "../../../../interfaces/gameAPI.interface";
-import { AbilityService } from "../../../../services/ability.service";
+import { AbilityService } from "../../../../services/ability/ability.service";
 import { LogService } from "../../../../services/log.service";
 import { Equipment } from "../../../equipment.class";
 import { Pack, Pet } from "../../../pet.class";
 import { Player } from "../../../player.class";
 import { SeaSerpentAbility } from "../../../abilities/pets/unicorn/tier-6/sea-serpent-ability.class";
 
-// TODO investigate tiger interaction
 export class SeaSerpent extends Pet {
     name = "Sea Serpent";
     tier = 6;
